@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Shift Booking</title>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4427649049615669"
+     crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800;900&family=Sora:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* === CONFIG: replace API_URL with your Apps Script Web App URL === */
+  :root {
+    --bg: #F4EDE0;
+    --panel: #FBF7EE;
+    --ink: #1A1410;
+    --ink-2: #56463D;
+    --ink-3: #9D8B7E;
+    --rule: #E8DAC1;
+    --rule-2: #D5C0A0;
+    --green: #C2410C;
+    --green-2: #9A330A;
+    --mint: #F0D88C;
+    --mint-2: #E5B843;
+    --warn: #B5790D;
+    --warn-bg: #F5DFA8;
+    --ok: #3F6B4E;
+    --ok-bg: #D4E0CB;
+    --err: #7D1E1E;
+    --err-bg: #F0D0C2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: 'Sora', system-ui, sans-serif; font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding: 0 0 60px; }
+  .container { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+  .mono { font-family: 'DM Mono', monospace; font-feature-settings: 'tnum' 1; }
+  .display { font-family: 'Big Shoulders Display', sans-serif; font-weight: 700; letter-spacing: 0; line-height: 1.05; }
+
+  /* Header */
+  header.topbar {
+    background: var(--green);
+    color: #fff;
+    padding: 18px 16px 16px;
+    border-bottom: 4px solid var(--mint);
+  }
+  header.topbar .container { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0; }
+  .brand { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0; }
+  .brand-sub { font-size: 11px; opacity: 0.7; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+  .nav-link { color: var(--mint); font-size: 13px; font-weight: 600; text-decoration: none; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(184,229,200,0.3); transition: all .15s; }
+  .nav-link:hover { background: var(--mint); color: var(--green); }
+
+  /* Step indicator */
+  .steps { display: flex; gap: 6px; padding: 16px 0 8px; align-items: center; flex-wrap: wrap; }
+  .step { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
+  .step.active { color: var(--green); }
+  .step.done { color: var(--ink-2); }
+  .step .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--rule); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; color: var(--ink-3); font-weight: 700; }
+  .step.active .dot { background: var(--green); color: #fff; }
+  .step.done .dot { background: var(--mint); color: var(--green); }
+  .step-sep { width: 16px; height: 1px; background: var(--rule); }
+
+  /* Panel */
+  .panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; padding: 22px; margin: 8px 0 16px; }
+  .panel h1 { font-family: 'Big Shoulders Display', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0; line-height: 1.1; margin-bottom: 6px; }
+  .panel .lede { color: var(--ink-2); font-size: 14px; margin-bottom: 18px; }
+  .panel h2 { font-family: 'Big Shoulders Display', sans-serif; font-size: 18px; font-weight: 700; margin: 0 0 10px; }
+
+  /* Forms */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .field input, .field select {
+    width: 100%; padding: 12px 14px; border: 1.5px solid var(--rule-2); border-radius: 10px;
+    background: var(--bg); font: inherit; color: var(--ink); transition: border-color .15s, background .15s;
+  }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--green); background: #fff; }
+  .field .hint { font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 22px; border-radius: 10px; border: none; font: inherit; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .btn-primary { background: var(--green); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--green-2); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-ghost { background: transparent; color: var(--ink-2); border: 1.5px solid var(--rule-2); }
+  .btn-ghost:hover { border-color: var(--green); color: var(--green); }
+  .btn-danger { background: transparent; color: var(--err); border: 1.5px solid var(--err-bg); }
+  .btn-danger:hover { background: var(--err-bg); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .btn-row .btn { flex: 1; min-width: 140px; }
+
+  /* Alerts */
+  .alert { padding: 12px 14px; border-radius: 10px; font-size: 14px; margin-bottom: 14px; display: flex; gap: 10px; align-items: flex-start; }
+  .alert.ok { background: var(--ok-bg); color: var(--ok); }
+  .alert.err { background: var(--err-bg); color: var(--err); }
+  .alert.info { background: var(--mint); color: var(--green); }
+  .alert.warn { background: var(--warn-bg); color: var(--warn); }
+  .alert b { font-weight: 700; }
+
+  /* Date picker grid */
+  .week-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; }
+  .week-tab { flex-shrink: 0; padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--rule-2); background: transparent; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+  .week-tab.active { background: var(--green); color: #fff; border-color: var(--green); }
+
+  .date-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 8px; }
+  .date-card { padding: 12px 8px; border-radius: 12px; border: 1.5px solid var(--rule); background: #fff; text-align: center; cursor: pointer; transition: all .15s; }
+  .date-card:hover { border-color: var(--green); transform: translateY(-1px); }
+  .date-card .day { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); font-weight: 700; }
+  .date-card .num { font-family: 'Big Shoulders Display', sans-serif; font-size: 26px; font-weight: 700; line-height: 1; margin: 2px 0; }
+  .date-card .mon { font-size: 11px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.05em; }
+  .date-card .avail { font-size: 10px; color: var(--ok); margin-top: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .date-card.full .avail { color: var(--err); }
+  .date-card.low { border-color: var(--mint-2); background: #FFF8E8; }
+  .date-card.low .avail { color: var(--warn); }
+  .date-card.low:hover { border-color: var(--warn); }
+
+  /* Shift list */
+  .shift-card {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center;
+    padding: 14px; border: 1.5px solid var(--rule); border-radius: 12px; margin-bottom: 8px; cursor: pointer; transition: all .15s; background: #fff;
+  }
+  .shift-card:hover:not(.disabled) { border-color: var(--green); transform: translateX(2px); }
+  .shift-card.selected { border-color: var(--green); background: #F5FAF6; box-shadow: 0 0 0 3px var(--mint); }
+  .shift-card.disabled { opacity: 0.5; cursor: not-allowed; }
+  .shift-time { font-family: 'DM Mono', monospace; font-weight: 700; font-size: 15px; color: var(--green); }
+  .shift-len { display: inline-block; padding: 2px 8px; border-radius: 6px; background: var(--mint); color: var(--green); font-size: 11px; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+  .shift-meta { font-size: 12px; color: var(--ink-2); margin-top: 4px; }
+  .shift-avail { text-align: right; font-family: 'DM Mono', monospace; }
+  .shift-avail .n { font-size: 22px; font-weight: 700; color: var(--ok); line-height: 1; }
+  .shift-avail.low .n { color: var(--warn); }
+  .shift-avail.full .n { color: var(--err); }
+  .shift-avail .lbl { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+
+  /* Booking list (My bookings) */
+  .booking-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 10px; margin-bottom: 8px; background: #fff; }
+  .booking-row .when { font-family: 'DM Mono', monospace; font-weight: 700; color: var(--green); }
+  .booking-row .meta { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+  .booking-row .bid { font-size: 10px; color: var(--ink-3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+  /* Hours banner on shift picker */
+  .hours-banner { background: var(--bg); border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; }
+  .hb-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .hb-cell { text-align: center; padding: 4px; }
+  .hb-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--ink-3); }
+  .hb-val { font-family: 'DM Mono', monospace; font-weight: 700; font-size: 15px; color: var(--green); margin-top: 2px; }
+
+  /* Filter note */
+  .filter-note { font-size: 12px; color: var(--ink-2); padding: 8px 12px; border-top: 1px dashed var(--rule); margin-top: 8px; font-style: italic; }
+
+  /* My bookings summary */
+  .mine-summary { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .mine-total { background: var(--green); color: #fff; border-radius: 10px; padding: 12px 16px; display: flex; align-items: baseline; justify-content: space-between; }
+  .mine-total-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; opacity: 0.85; }
+  .mine-total-val { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: 26px; line-height: 1; }
+  .mine-total-cap { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; opacity: 0.7; margin-left: 2px; }
+  .mine-weeks { display: flex; gap: 6px; flex-wrap: wrap; }
+  .mine-week-chip { padding: 8px 12px; border-radius: 8px; background: var(--mint); color: var(--ink); font-family: 'DM Mono', monospace; font-weight: 700; font-size: 12px; border: 1px solid var(--mint-2); }
+  .mine-week-chip.over { background: var(--err-bg); color: var(--err); border-color: var(--err); }
+
+  /* Loader */
+  .loader { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--rule-2); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .center-loader { text-align: center; padding: 30px; color: var(--ink-3); }
+
+  /* Confirmation */
+  .confirmation { text-align: center; padding: 12px 0; }
+  .confirmation .check { width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%; background: var(--mint); display: flex; align-items: center; justify-content: center; }
+  .confirmation .check::before { content: ''; width: 16px; height: 28px; border-right: 4px solid var(--green); border-bottom: 4px solid var(--green); transform: rotate(45deg); margin-top: -6px; }
+  .confirmation h2 { font-size: 24px; margin-bottom: 10px; }
+  .conf-detail { background: var(--bg); border-radius: 10px; padding: 14px; margin: 14px 0; text-align: left; }
+  .conf-detail .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; border-bottom: 1px dashed var(--rule); }
+  .conf-detail .row:last-child { border-bottom: none; }
+  .conf-detail .row .k { color: var(--ink-2); font-weight: 600; }
+  .conf-detail .row .v { font-family: 'DM Mono', monospace; font-weight: 700; color: var(--green); }
+
+  /* Hidden */
+  .hidden { display: none !important; }
+
+  /* Small screens */
+  @media (max-width: 480px) {
+    .panel { padding: 18px; border-radius: 12px; }
+    .panel h1 { font-size: 22px; }
+    .date-grid { grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); }
+    .shift-card { grid-template-columns: 1fr auto; }
+    .shift-card .shift-time-col { grid-column: 1; }
+    .shift-card .shift-avail { grid-column: 2; grid-row: 1; }
+    .step span:not(.dot) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <div>
+      <div class="brand" id="brandName">Shift Booking</div>
+      <div class="brand-sub">Pick your shifts · 5 weeks open</div>
+    </div>
+    <a href="#" class="nav-link" id="myBookingsLink" onclick="goMyBookings(event)">My bookings</a>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- Step indicator -->
+  <div class="steps" id="stepIndicator">
+    <div class="step active" data-s="1"><span class="dot">1</span><span>Identify</span></div>
+    <div class="step-sep"></div>
+    <div class="step" data-s="2"><span class="dot">2</span><span>Date</span></div>
+    <div class="step-sep"></div>
+    <div class="step" data-s="3"><span class="dot">3</span><span>Shift</span></div>
+    <div class="step-sep"></div>
+    <div class="step" data-s="4"><span class="dot">4</span><span>Confirm</span></div>
+  </div>
+
+  <!-- STEP 1: Identify -->
+  <section id="step1" class="panel">
+    <h1>Who's booking?</h1>
+    <p class="lede">Enter your NB number and the email on file. We use this to validate you and apply weekly limits.</p>
+    <div id="alert1"></div>
+    <div class="field">
+      <label for="nb">NB number</label>
+      <input id="nb" type="text" placeholder="e.g. NB42" autocomplete="off" inputmode="text">
+      <div class="hint">Format: NB followed by 1–500</div>
+    </div>
+    <div class="field">
+      <label for="name">Your name</label>
+      <input id="name" type="text" placeholder="As it appears on file" autocomplete="name">
+    </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+      <div class="hint">Must match the email registered against your NB number.</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goStep2()">Continue →</button>
+    </div>
+  </section>
+
+  <!-- STEP 2: Date -->
+  <section id="step2" class="panel hidden">
+    <h1>Pick a date</h1>
+    <p class="lede">All 5 weeks are open. Numbers below show available shift slots per day.</p>
+    <div id="alert2"></div>
+    <div class="week-tabs" id="weekTabs"></div>
+    <div class="date-grid" id="dateGrid"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+    </div>
+  </section>
+
+  <!-- STEP 3: Shift -->
+  <section id="step3" class="panel hidden">
+    <h1 id="shiftHeader">Pick a shift</h1>
+    <p class="lede" id="shiftLede"></p>
+    <div id="alert3"></div>
+    <div id="shiftList"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(2)">← Change date</button>
+      <button class="btn btn-primary" id="confirmBtn" onclick="confirmBooking()" disabled>Book this shift</button>
+    </div>
+  </section>
+
+  <!-- STEP 4: Confirmation -->
+  <section id="step4" class="panel hidden">
+    <div class="confirmation">
+      <div class="check"></div>
+      <h2>Shift booked.</h2>
+      <p class="lede">You'll see this in "My bookings" — and in the operations sheet.</p>
+      <div class="conf-detail" id="confDetail"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="bookAnother()">Book another shift</button>
+        <button class="btn btn-ghost" onclick="goMyBookings()">View my bookings</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- MY BOOKINGS panel -->
+  <section id="stepMine" class="panel hidden">
+    <h1>My bookings</h1>
+    <p class="lede" id="mineLede">Hours booked per week, plus all upcoming shifts.</p>
+    <div id="alertMine"></div>
+    <div id="hoursSummary"></div>
+    <div id="mineList"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(1)">← Back to booking</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // ============== CONFIG ==============
+  const API_URL = 'https://script.google.com/macros/s/AKfycbx2o7ogvuFid_yAcdVGuCBoG7koCqQ9Kgt3WGmejRxKdHxSXnzQR68wRHPE2_6QcKcL/exec';
+
+  // ============== STATE ==============
+  const state = {
+    nb: '', name: '', email: '',
+    dates: [],
+    selectedDate: null,
+    shifts: [],
+    selectedShift: null,
+    booking: null,
+    // Hours rollups for cap enforcement
+    myBookings: [],            // array of {ShiftID, Date, Hours, ...}
+    hoursByDate: {},           // {'2026-06-01': 8, ...}
+    hoursByWeek: {},           // {'2026-06-01': 24, ...} keyed by Monday of week
+    totalHours: 0,
+    caps: { maxDay: 8, maxWeek: 56, maxTotal: 160 },
+  };
+
+  // ============== API ==============
+  async function api(action, params = {}) {
+    const body = JSON.stringify({ action, ...params });
+    const res = await fetch(API_URL, { method: 'POST', body, redirect: 'follow' });
+    if (!res.ok) throw new Error('Network error ' + res.status);
+    return res.json();
+  }
+
+  // Compute Monday-of-week ISO date for any given ISO date (Mon-Sun weeks)
+  function weekStartOf(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const day = d.getDay();
+    const offset = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // ============== NAV ==============
+  function goStep(n) {
+    ['step1','step2','step3','step4','stepMine'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    document.getElementById('step' + n).classList.remove('hidden');
+    // step indicator
+    document.querySelectorAll('.step').forEach(el => {
+      const s = +el.dataset.s;
+      el.classList.toggle('active', s === n);
+      el.classList.toggle('done', s < n);
+    });
+    document.getElementById('stepIndicator').style.display = (n === 'Mine' ? 'none' : 'flex');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showAlert(elId, type, msg) {
+    document.getElementById(elId).innerHTML = `<div class="alert ${type}">${msg}</div>`;
+  }
+  function clearAlert(elId) { document.getElementById(elId).innerHTML = ''; }
+
+  // ============== STEP 1 ==============
+  async function goStep2() {
+    const nb = document.getElementById('nb').value.trim().toUpperCase();
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    clearAlert('alert1');
+    if (!/^NB\d{1,3}$/.test(nb)) return showAlert('alert1', 'err', 'NB number must look like <b>NB42</b> (NB followed by 1–500).');
+    const n = +nb.replace('NB','');
+    if (n < 1 || n > 500) return showAlert('alert1', 'err', 'NB number out of range (NB1–NB500).');
+    if (!name || name.length < 2) return showAlert('alert1', 'err', 'Please enter your name.');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showAlert('alert1', 'err', 'Please enter a valid email.');
+
+    // Server-side identity validation + fetch existing bookings (so we know caps)
+    const btn = document.querySelector('#step1 .btn-primary');
+    const orig = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Verifying…';
+    try {
+      const res = await api('getMyBookings', { nb, email });
+      if (!res.ok) throw new Error(res.error || 'Validation failed');
+      state.nb = nb;
+      state.name = res.name || name;
+      state.email = email;
+      state.myBookings = res.bookings || [];
+      state.hoursByWeek = res.hoursByWeek || {};
+      state.hoursByDate = res.hoursByDate || {};
+      state.totalHours = res.totalHours || 0;
+      if (res.caps) state.caps = res.caps;
+      loadDates();
+    } catch (e) {
+      showAlert('alert1', 'err', e.message);
+      btn.disabled = false; btn.innerHTML = orig;
+    }
+  }
+
+  // ============== STEP 2: Dates ==============
+  async function loadDates() {
+    goStep(2);
+    document.getElementById('dateGrid').innerHTML = '<div class="center-loader"><div class="loader"></div></div>';
+    document.getElementById('weekTabs').innerHTML = '';
+    try {
+      const res = await api('getDates', { nb: state.nb, email: state.email });
+      if (!res.ok) throw new Error(res.error || 'Failed to load dates');
+      state.dates = res.dates;
+      renderWeeks();
+    } catch (e) {
+      document.getElementById('dateGrid').innerHTML = '';
+      showAlert('alert2', 'err', 'Could not load dates: ' + e.message);
+    }
+  }
+
+  function renderWeeks() {
+    // group into weeks (Mon-Sun)
+    const byWeek = {};
+    state.dates.forEach(d => {
+      const dt = new Date(d.date + 'T00:00:00');
+      const day = dt.getDay();
+      const offset = day === 0 ? -6 : 1 - day;
+      const monday = new Date(dt); monday.setDate(dt.getDate() + offset);
+      const key = monday.toISOString().slice(0, 10);
+      if (!byWeek[key]) byWeek[key] = [];
+      byWeek[key].push(d);
+    });
+    const weekKeys = Object.keys(byWeek).sort();
+    const tabs = document.getElementById('weekTabs');
+    tabs.innerHTML = '';
+    weekKeys.forEach((wk, i) => {
+      const days = byWeek[wk];
+      const lastDay = days[days.length-1].date;
+      const wkStartLabel = new Date(wk + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      const wkEndLabel = new Date(lastDay + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      const btn = document.createElement('button');
+      btn.className = 'week-tab' + (i === 0 ? ' active' : '');
+      btn.textContent = `Week ${i+1} · ${wkStartLabel}–${wkEndLabel}`;
+      btn.onclick = () => {
+        document.querySelectorAll('.week-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderDateGrid(byWeek[wk]);
+      };
+      tabs.appendChild(btn);
+    });
+    if (weekKeys.length) renderDateGrid(byWeek[weekKeys[0]]);
+  }
+
+  function renderDateGrid(days) {
+    const grid = document.getElementById('dateGrid');
+    grid.innerHTML = '';
+    days.forEach(d => {
+      const dt = new Date(d.date + 'T00:00:00');
+      const dayLabel = dt.toLocaleDateString('en-GB', { weekday: 'short' });
+      const num = dt.getDate();
+      const mon = dt.toLocaleDateString('en-GB', { month: 'short' });
+      // Show count of distinct shifts still bookable (not total rider capacity).
+      // Falls back to capacity-based count for older API responses.
+      const slots = (typeof d.availableShifts === 'number')
+        ? d.availableShifts
+        : Math.max(0, (d.capacity || 0) - (d.booked || 0));
+      let availText, extraCls = '';
+      if (slots <= 0) {
+        availText = 'Full';
+        extraCls = ' full';
+      } else if (slots <= 3) {
+        availText = 'Only ' + slots + ' left';
+        extraCls = ' low';
+      } else {
+        availText = slots + ' time slots';
+      }
+      const card = document.createElement('div');
+      card.className = 'date-card' + extraCls;
+      card.innerHTML =
+        '<div class="day">' + dayLabel + '</div>' +
+        '<div class="num">' + num + '</div>' +
+        '<div class="mon">' + mon + '</div>' +
+        '<div class="avail">' + availText + '</div>';
+      card.onclick = () => { state.selectedDate = d.date; loadShifts(d.date); };
+      grid.appendChild(card);
+    });
+  }
+
+  // ============== STEP 3: Shifts ==============
+  async function loadShifts(date) {
+    goStep(3);
+    document.getElementById('shiftList').innerHTML = '<div class="center-loader"><div class="loader"></div></div>';
+    const dt = new Date(date + 'T00:00:00');
+    document.getElementById('shiftHeader').textContent = dt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    document.getElementById('shiftLede').textContent = 'Pick a 4h, 6h, or 8h shift. Numbers on the right are slots left.';
+    state.selectedShift = null;
+    document.getElementById('confirmBtn').disabled = true;
+    try {
+      const res = await api('getShifts', { date, nb: state.nb, email: state.email });
+      if (!res.ok) throw new Error(res.error || 'Failed');
+      state.shifts = res.shifts;
+      renderShifts();
+    } catch (e) {
+      document.getElementById('shiftList').innerHTML = '';
+      showAlert('alert3', 'err', 'Could not load shifts: ' + e.message);
+    }
+  }
+
+  function renderShifts() {
+    const list = document.getElementById('shiftList');
+    list.innerHTML = '';
+    if (!state.shifts.length) { list.innerHTML = '<div class="alert info">No shifts on this date.</div>'; return; }
+
+    // ----- Hours banner: today, this week, total -----
+    const date = state.selectedDate;
+    const wkStart = weekStartOf(date);
+    const dayH = state.hoursByDate[date] || 0;
+    const weekH = state.hoursByWeek[wkStart] || 0;
+    const totalH = state.totalHours || 0;
+    const { maxDay, maxWeek, maxTotal } = state.caps;
+    const dayLeft = maxDay - dayH;
+    const weekLeft = maxWeek - weekH;
+    const totalLeft = maxTotal - totalH;
+    const maxFittable = Math.min(dayLeft, weekLeft, totalLeft);
+
+    const banner = document.createElement('div');
+    banner.className = 'hours-banner';
+    banner.innerHTML =
+      '<div class="hb-row">' +
+        '<div class="hb-cell"><div class="hb-lbl">Today</div><div class="hb-val">' + dayH + '/' + maxDay + 'h</div></div>' +
+        '<div class="hb-cell"><div class="hb-lbl">This week</div><div class="hb-val">' + weekH + '/' + maxWeek + 'h</div></div>' +
+        '<div class="hb-cell"><div class="hb-lbl">Total booked</div><div class="hb-val">' + totalH + '/' + maxTotal + 'h</div></div>' +
+      '</div>';
+    list.appendChild(banner);
+
+    // ----- Bookable shifts only -----
+    const bookedShiftIds = new Set(state.myBookings.map(b => b.ShiftID));
+    let visible = 0, hiddenReason = null;
+
+    state.shifts.forEach(s => {
+      // Skip shifts the rider has already booked
+      if (bookedShiftIds.has(s.ShiftID)) return;
+      // Skip shifts that would exceed any cap
+      const h = Number(s.Hours);
+      if (dayH + h > maxDay) { hiddenReason = hiddenReason || 'day'; return; }
+      if (weekH + h > maxWeek) { hiddenReason = hiddenReason || 'week'; return; }
+      if (totalH + h > maxTotal) { hiddenReason = hiddenReason || 'total'; return; }
+
+      const ratio = s.Capacity > 0 ? s.Available / s.Capacity : 0;
+      const availCls = s.Available <= 0 ? 'full' : (ratio < 0.2 ? 'low' : '');
+      const disabled = s.Available <= 0 || s.Status !== 'OPEN';
+      const card = document.createElement('div');
+      card.className = 'shift-card' + (disabled ? ' disabled' : '');
+      card.innerHTML =
+        '<div class="shift-time-col">' +
+          '<span class="shift-time">' + s.Start + '–' + s.End + '</span>' +
+          '<span class="shift-len">' + s.Hours + 'h' + (s.Overnight === 'YES' ? ' · overnight' : '') + '</span>' +
+          '<div class="shift-meta mono">' + s.ShiftID + '</div>' +
+        '</div>' +
+        '<div></div>' +
+        '<div class="shift-avail ' + availCls + '">' +
+          '<div class="n">' + s.Available + '</div>' +
+          '<div class="lbl">left</div>' +
+        '</div>';
+      if (!disabled) {
+        card.onclick = () => {
+          document.querySelectorAll('.shift-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          state.selectedShift = s;
+          document.getElementById('confirmBtn').disabled = false;
+        };
+      }
+      list.appendChild(card);
+      visible++;
+    });
+
+    // ----- Empty-state messaging if everything was filtered out -----
+    if (visible === 0) {
+      const msg = document.createElement('div');
+      msg.className = 'alert warn';
+      if (maxFittable < 4) {
+        // No room for even a 4h shift
+        if (totalLeft < 4) {
+          msg.innerHTML = "You've reached your <b>" + maxTotal + "h total cap</b>. No more shifts can be booked.";
+        } else if (weekLeft < 4) {
+          msg.innerHTML = "You've reached your <b>" + maxWeek + "h weekly cap</b> for this week. Pick a different week.";
+        } else if (dayLeft < 4) {
+          msg.innerHTML = "You've reached your <b>" + maxDay + "h daily cap</b> for this day. Pick a different day.";
+        } else {
+          msg.innerHTML = 'No shifts available to book on this date within your remaining cap.';
+        }
+      } else {
+        // Some hours remain, but none of the candidates fit
+        msg.innerHTML = 'No shifts on this date fit within your remaining caps (' + maxFittable + 'h max). Try a different date.';
+      }
+      list.appendChild(msg);
+    } else {
+      // Show how many we filtered out for transparency
+      const totalCandidates = state.shifts.length - state.shifts.filter(s => bookedShiftIds.has(s.ShiftID)).length;
+      const hidden = totalCandidates - visible;
+      if (hidden > 0) {
+        const note = document.createElement('div');
+        note.className = 'filter-note';
+        note.textContent = hidden + ' shift' + (hidden === 1 ? '' : 's') + ' hidden — would exceed your caps. Showing only shifts ≤ ' + maxFittable + 'h.';
+        list.appendChild(note);
+      }
+      // Show already-booked count if any
+      const bookedOnDate = state.myBookings.filter(b => b.Date === date).length;
+      if (bookedOnDate > 0) {
+        const noteB = document.createElement('div');
+        noteB.className = 'filter-note';
+        noteB.textContent = "You've already booked " + bookedOnDate + ' shift' + (bookedOnDate === 1 ? '' : 's') + ' on this date.';
+        list.appendChild(noteB);
+      }
+    }
+  }
+
+  // ============== STEP 4: Confirm ==============
+  async function confirmBooking() {
+    if (!state.selectedShift) return;
+    const btn = document.getElementById('confirmBtn');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader"></span> Booking…';
+    clearAlert('alert3');
+    try {
+      const res = await api('book', {
+        shiftId: state.selectedShift.ShiftID,
+        nb: state.nb, name: state.name, email: state.email
+      });
+      if (!res.ok) throw new Error(res.error || 'Booking failed');
+      const s = state.selectedShift;
+      state.booking = { ...s, BookingID: res.bookingId };
+      // Optimistically update local hour rollups so subsequent renders are correct
+      state.myBookings.push({
+        BookingID: res.bookingId,
+        ShiftID: s.ShiftID, Date: s.Date, Day: s.Day,
+        Start: s.Start, End: s.End, Hours: Number(s.Hours)
+      });
+      const ws = weekStartOf(s.Date);
+      state.hoursByDate[s.Date] = (state.hoursByDate[s.Date] || 0) + Number(s.Hours);
+      state.hoursByWeek[ws] = (state.hoursByWeek[ws] || 0) + Number(s.Hours);
+      state.totalHours += Number(s.Hours);
+      renderConfirmation();
+      goStep(4);
+    } catch (e) {
+      showAlert('alert3', 'err', e.message);
+      btn.disabled = false;
+      btn.innerHTML = orig;
+    }
+  }
+
+  function renderConfirmation() {
+    const b = state.booking;
+    const dt = new Date(b.Date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    document.getElementById('confDetail').innerHTML = `
+      <div class="row"><span class="k">Booking ID</span><span class="v">${b.BookingID}</span></div>
+      <div class="row"><span class="k">Date</span><span class="v">${dt}</span></div>
+      <div class="row"><span class="k">Time</span><span class="v">${b.Start}–${b.End}</span></div>
+      <div class="row"><span class="k">Hours</span><span class="v">${b.Hours}h</span></div>
+      <div class="row"><span class="k">Total this booking cycle</span><span class="v">${state.totalHours}/${state.caps.maxTotal}h</span></div>
+      <div class="row"><span class="k">User</span><span class="v">${state.nb}</span></div>
+    `;
+  }
+
+  function bookAnother() {
+    state.selectedShift = null;
+    state.selectedDate = null;
+    // keep myBookings, hoursByWeek, hoursByDate, totalHours — they're still valid
+    loadDates();
+  }
+
+  // ============== MY BOOKINGS ==============
+  async function goMyBookings(e) {
+    if (e) e.preventDefault();
+    if (!state.nb || !state.email) { goStep(1); showAlert('alert1', 'info', 'Identify yourself first to see your bookings.'); return; }
+    goStep('Mine');
+    clearAlert('alertMine');
+    document.getElementById('hoursSummary').innerHTML = '';
+    document.getElementById('mineList').innerHTML = '<div class="center-loader"><div class="loader"></div></div>';
+    try {
+      const res = await api('getMyBookings', { nb: state.nb, email: state.email });
+      if (!res.ok) throw new Error(res.error);
+      // Refresh state caches from canonical server data
+      state.myBookings = res.bookings || [];
+      state.hoursByWeek = res.hoursByWeek || {};
+      state.hoursByDate = res.hoursByDate || {};
+      state.totalHours = res.totalHours || 0;
+      if (res.caps) state.caps = res.caps;
+      renderMine(res);
+    } catch (err) {
+      document.getElementById('mineList').innerHTML = '';
+      showAlert('alertMine', 'err', err.message);
+    }
+  }
+
+  function renderMine(res) {
+    const maxTotal = (state.caps && state.caps.maxTotal) || 160;
+    const maxWeek = (state.caps && state.caps.maxWeek) || 56;
+    // ----- Total + per-week summary -----
+    const wks = Object.keys(res.hoursByWeek || {}).sort();
+    let html = '<div class="mine-summary">';
+    html += '<div class="mine-total"><div class="mine-total-lbl">Total booked</div><div class="mine-total-val">' + (res.totalHours || 0) + '<span class="mine-total-cap">/' + maxTotal + 'h</span></div></div>';
+    if (wks.length) {
+      html += '<div class="mine-weeks">';
+      wks.forEach(wk => {
+        const h = res.hoursByWeek[wk];
+        const lbl = new Date(wk + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const over = h > maxWeek;
+        html += '<div class="mine-week-chip' + (over ? ' over' : '') + '">Wk ' + lbl + ': ' + h + 'h' + (over ? ' ⚠' : '') + '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+    document.getElementById('hoursSummary').innerHTML = html;
+
+    const list = document.getElementById('mineList');
+    if (!res.bookings.length) { list.innerHTML = '<div class="alert info">No bookings yet. Use "Back to booking" to add one.</div>'; return; }
+    list.innerHTML = '';
+    res.bookings.forEach(b => {
+      const dt = new Date(b.Date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+      const div = document.createElement('div');
+      div.className = 'booking-row';
+      div.innerHTML = `
+        <div>
+          <span class="when">${b.Start}–${b.End}</span>
+          <div class="meta">${dt} · ${b.Hours}h shift</div>
+          <div class="bid">${b.BookingID}</div>
+        </div>
+        <button class="btn btn-danger" onclick="cancelMine('${b.BookingID}')">Cancel</button>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  async function cancelMine(bookingId) {
+    if (!confirm('Cancel this booking? This frees the slot for someone else.')) return;
+    try {
+      const res = await api('cancel', { bookingId, nb: state.nb, email: state.email });
+      if (!res.ok) throw new Error(res.error);
+      showAlert('alertMine', 'ok', 'Booking cancelled.');
+      goMyBookings();
+    } catch (e) {
+      showAlert('alertMine', 'err', e.message);
+    }
+  }
+
+  // Init
+  document.getElementById('nb').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+</script>
+</body>
+</html>

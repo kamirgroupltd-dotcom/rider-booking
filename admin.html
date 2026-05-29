@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin · Shift Booking</title>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4427649049615669"
+     crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800;900&family=Sora:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E0A07;
+    --bg-2: #1A130E;
+    --panel: #221A14;
+    --panel-2: #2D2218;
+    --ink: #F4EDE0;
+    --ink-2: #B5A595;
+    --ink-3: #786A5E;
+    --rule: #3A2D22;
+    --mint: #E5B843;
+    --mint-2: #F5C95C;
+    --green: #E5854D;
+    --warn: #E5B843;
+    --warn-bg: #4A340E;
+    --err: #E89B7E;
+    --err-bg: #4A1414;
+    --ok: #86BC9C;
+    --ok-bg: #1A3C28;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: 'Sora', system-ui, sans-serif; font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; }
+  .mono { font-family: 'DM Mono', monospace; font-feature-settings: 'tnum' 1; }
+
+  header {
+    background: var(--bg-2); border-bottom: 1px solid var(--rule);
+    padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; }
+  .logo .sub { color: var(--mint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-left: 8px; font-weight: 600; }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+
+  main { padding: 20px; max-width: 1400px; margin: 0 auto; }
+
+  /* Login */
+  .login-shell { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 60px); padding: 20px; }
+  .login-card { background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; padding: 32px; width: 100%; max-width: 380px; }
+  .login-card h1 { font-family: 'Big Shoulders Display', sans-serif; font-size: 22px; margin-bottom: 6px; }
+  .login-card p { color: var(--ink-2); font-size: 13px; margin-bottom: 18px; }
+
+  /* Forms */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--rule); border-radius: 8px;
+    background: var(--bg-2); font: inherit; color: var(--ink); transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--mint); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; border-radius: 8px; border: none; font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; transition: all .15s; }
+  .btn-primary { background: var(--mint); color: var(--bg); }
+  .btn-primary:hover:not(:disabled) { background: var(--mint-2); }
+  .btn-ghost { background: transparent; color: var(--ink-2); border: 1px solid var(--rule); }
+  .btn-ghost:hover { border-color: var(--mint); color: var(--mint); }
+  .btn-danger { background: transparent; color: var(--err); border: 1px solid var(--err-bg); }
+  .btn-danger:hover { background: var(--err-bg); color: #fff; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-block { width: 100%; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--rule); overflow-x: auto; }
+  .tab { padding: 10px 16px; background: transparent; border: none; color: var(--ink-2); font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tab.active { color: var(--mint); border-bottom-color: var(--mint); }
+  .tab:hover:not(.active) { color: var(--ink); }
+
+  /* Cards */
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .stat { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+  .stat .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 4px; }
+  .stat .val { font-family: 'Big Shoulders Display', sans-serif; font-size: 26px; font-weight: 700; color: var(--mint); line-height: 1; }
+  .stat .sub { font-size: 11px; color: var(--ink-2); margin-top: 4px; }
+
+  /* Table */
+  .table-wrap { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; overflow: auto; max-height: 70vh; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { position: sticky; top: 0; background: var(--panel-2); z-index: 1; }
+  th { padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); font-weight: 700; border-bottom: 1px solid var(--rule); white-space: nowrap; cursor: pointer; user-select: none; }
+  th:hover { color: var(--mint); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+  tbody tr:hover { background: var(--bg-2); }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .pill-open { background: var(--ok-bg); color: var(--ok); }
+  .pill-full { background: var(--err-bg); color: var(--err); }
+  .pill-cancelled { background: var(--warn-bg); color: var(--warn); }
+  .pill-booked { background: var(--ok-bg); color: var(--ok); }
+  .pill-yes { background: var(--ok-bg); color: var(--ok); }
+  .pill-no { background: var(--warn-bg); color: var(--warn); }
+
+  /* Toolbar */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .toolbar input, .toolbar select { padding: 8px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--bg-2); color: var(--ink); font: inherit; font-size: 13px; }
+  .toolbar input { min-width: 200px; }
+  .spacer { flex: 1; }
+
+  /* Alerts */
+  .alert { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+  .alert.ok { background: var(--ok-bg); color: var(--ok); }
+  .alert.err { background: var(--err-bg); color: var(--err); }
+  .alert.info { background: var(--panel-2); color: var(--mint); }
+
+  /* Modal */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; padding: 22px; width: 100%; max-width: 460px; max-height: 90vh; overflow: auto; }
+  .modal h2 { font-family: 'Big Shoulders Display', sans-serif; font-size: 18px; margin-bottom: 14px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+  /* Loader */
+  .loader { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--rule); border-top-color: var(--mint); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .center-loader { text-align: center; padding: 40px; color: var(--ink-2); }
+  .hidden { display: none !important; }
+
+  /* Hours dashboard */
+  .hours-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+  .hours-card { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; }
+  .hours-card .nb { font-family: 'DM Mono', monospace; font-weight: 700; color: var(--mint); font-size: 13px; }
+  .hours-card .nm { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+  .hours-card .h { font-family: 'DM Mono', monospace; font-weight: 700; font-size: 16px; margin-top: 6px; }
+  .hours-card.over .h { color: var(--err); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginShell" class="login-shell">
+  <div class="login-card">
+    <h1>Admin access</h1>
+    <p>Enter the admin password to manage shifts, bookings, and users.</p>
+    <div id="loginAlert"></div>
+    <div class="field">
+      <label for="pw">Password</label>
+      <input id="pw" type="password" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary btn-block" id="loginBtn" onclick="login()">Sign in</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <header>
+    <div><span class="logo">Shift Booking <span class="sub">Admin</span></span></div>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" onclick="refresh()">↻ Refresh</button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Log out</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="overview" onclick="goTab('overview')">Overview</button>
+      <button class="tab" data-tab="bookings" onclick="goTab('bookings')">Bookings</button>
+      <button class="tab" data-tab="shifts" onclick="goTab('shifts')">Shifts</button>
+      <button class="tab" data-tab="riders" onclick="goTab('riders')">Users</button>
+      <button class="tab" data-tab="hours" onclick="goTab('hours')">Hours</button>
+    </div>
+
+    <div id="alert"></div>
+
+    <!-- OVERVIEW -->
+    <section id="tab-overview">
+      <div class="stat-row" id="statRow"></div>
+      <div class="table-wrap">
+        <table id="overviewTbl">
+          <thead><tr>
+            <th>Date</th><th>Day</th><th>Shifts</th><th>Capacity</th><th>Booked</th><th>Available</th><th>Fill %</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- BOOKINGS -->
+    <section id="tab-bookings" class="hidden">
+      <div class="toolbar">
+        <input id="bSearch" placeholder="Search NB, name, email, ShiftID…" oninput="renderBookings()">
+        <select id="bStatus" onchange="renderBookings()">
+          <option value="">All statuses</option>
+          <option value="BOOKED">Booked</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+        <select id="bDate" onchange="renderBookings()">
+          <option value="">All dates</option>
+        </select>
+        <div class="spacer"></div>
+        <button class="btn btn-ghost btn-sm" onclick="exportBookings()">Export CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table id="bookingsTbl">
+          <thead><tr>
+            <th>Booking ID</th><th>NB</th><th>Name</th><th>Email</th>
+            <th>Date</th><th>Time</th><th>Hrs</th><th>Status</th><th>Timestamp</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SHIFTS -->
+    <section id="tab-shifts" class="hidden">
+      <div class="toolbar">
+        <input id="sSearch" placeholder="Search ShiftID, date…" oninput="renderShifts()">
+        <select id="sDate" onchange="renderShifts()">
+          <option value="">All dates</option>
+        </select>
+        <select id="sStatus" onchange="renderShifts()">
+          <option value="">All statuses</option>
+          <option value="OPEN">Open</option>
+          <option value="FULL">Full</option>
+          <option value="CLOSED">Closed</option>
+        </select>
+        <div class="spacer"></div>
+        <button class="btn btn-primary btn-sm" onclick="openAddShift()">+ Add shift</button>
+      </div>
+      <div class="table-wrap">
+        <table id="shiftsTbl">
+          <thead><tr>
+            <th>ShiftID</th><th>Date</th><th>Day</th><th>Start</th><th>End</th>
+            <th>Hrs</th><th>Cap</th><th>Booked</th><th>Avail</th><th>Status</th><th>Notes</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- RIDERS -->
+    <section id="tab-riders" class="hidden">
+      <div class="toolbar">
+        <input id="rSearch" placeholder="Search NB, name, email…" oninput="renderRiders()">
+        <select id="rActive" onchange="renderRiders()">
+          <option value="">All</option>
+          <option value="YES">Active only</option>
+          <option value="NO">Inactive only</option>
+          <option value="EMPTY">No data yet</option>
+        </select>
+        <div class="spacer"></div>
+        <button class="btn btn-ghost btn-sm" onclick="exportRiders()">Export CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table id="ridersTbl">
+          <thead><tr>
+            <th>NB</th><th>Name</th><th>Email</th><th>Phone</th><th>Active</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- HOURS -->
+    <section id="tab-hours" class="hidden">
+      <div class="toolbar">
+        <input id="hSearch" placeholder="Search NB or name…" oninput="renderHours()">
+        <select id="hWeek" onchange="renderHours()">
+          <option value="all">All weeks</option>
+        </select>
+        <select id="hSort" onchange="renderHours()">
+          <option value="hours-desc">Most hours first</option>
+          <option value="hours-asc">Least hours first</option>
+          <option value="nb-asc">NB number ↑</option>
+          <option value="over-week">Over 56h/week</option>
+          <option value="over-total">Over 160h total</option>
+        </select>
+        <div class="spacer"></div>
+        <button class="btn btn-danger btn-sm" onclick="enforceCaps()" title="Cancel each over-cap user's most recent shifts until they're at or under 160h total">Enforce 160h cap</button>
+      </div>
+      <div id="hoursGrid" class="hours-grid"></div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+  // ============== CONFIG ==============
+  const API_URL = 'https://script.google.com/macros/s/AKfycbx2o7ogvuFid_yAcdVGuCBoG7koCqQ9Kgt3WGmejRxKdHxSXnzQR68wRHPE2_6QcKcL/exec';
+
+  // ============== STATE ==============
+  let PW = '';
+  let DATA = { shifts: [], bookings: [], riders: [] };
+
+  // ============== API ==============
+  async function api(action, params = {}) {
+    const body = JSON.stringify({ action, password: PW, ...params });
+    const res = await fetch(API_URL, { method: 'POST', body, redirect: 'follow' });
+    if (!res.ok) throw new Error('Network error ' + res.status);
+    return res.json();
+  }
+
+  // ============== LOGIN ==============
+  async function login() {
+    const pw = document.getElementById('pw').value;
+    if (!pw) return;
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Verifying…';
+    try {
+      const res = await api('adminLogin', { password: pw });
+      if (!res.ok) throw new Error(res.error || 'Login failed');
+      PW = pw;
+      sessionStorage.setItem('admin_pw', pw);
+      document.getElementById('loginShell').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      await loadAll();
+    } catch (e) {
+      document.getElementById('loginAlert').innerHTML = `<div class="alert err">${e.message}</div>`;
+      btn.disabled = false; btn.innerHTML = 'Sign in';
+    }
+  }
+
+  function logout() {
+    PW = ''; sessionStorage.removeItem('admin_pw');
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('loginShell').classList.remove('hidden');
+    document.getElementById('pw').value = '';
+  }
+
+  // ============== DATA LOAD ==============
+  async function loadAll() {
+    try {
+      showAlert('info', 'Loading…');
+      const res = await api('adminGetData');
+      if (!res.ok) throw new Error(res.error);
+      DATA = res;
+      clearAlert();
+      populateFilters();
+      renderOverview();
+      renderBookings();
+      renderShifts();
+      renderRiders();
+      renderHours();
+    } catch (e) { showAlert('err', e.message); }
+  }
+  async function refresh() { await loadAll(); }
+
+  function populateFilters() {
+    const dates = [...new Set(DATA.shifts.map(s => s.Date))].sort();
+    ['bDate','sDate'].forEach(id => {
+      const el = document.getElementById(id);
+      const cur = el.value;
+      el.innerHTML = '<option value="">All dates</option>' + dates.map(d => `<option value="${d}">${d}</option>`).join('');
+      el.value = cur;
+    });
+    // weeks
+    const weeks = [...new Set(dates.map(d => weekStart(d)))].sort();
+    const hWeek = document.getElementById('hWeek');
+    const cur = hWeek.value;
+    hWeek.innerHTML = '<option value="all">All weeks</option>' + weeks.map((w,i) => `<option value="${w}">Week ${i+1} (${w})</option>`).join('');
+    hWeek.value = cur;
+  }
+
+  function weekStart(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const day = d.getDay();
+    const offset = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().slice(0,10);
+  }
+
+  // ============== TABS ==============
+  function goTab(name) {
+    ['overview','bookings','shifts','riders','hours'].forEach(t => {
+      document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
+    });
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  }
+
+  // ============== OVERVIEW ==============
+  function renderOverview() {
+    const totalShifts = DATA.shifts.length;
+    const totalCap = DATA.shifts.reduce((a,s) => a + s.Capacity, 0);
+    const totalBooked = DATA.shifts.reduce((a,s) => a + s.Booked, 0);
+    const totalRiders = DATA.riders.filter(r => r.Name || r.Email).length;
+    const activeBookings = DATA.bookings.filter(b => b.Status === 'BOOKED').length;
+    const cancelled = DATA.bookings.filter(b => b.Status === 'CANCELLED').length;
+    const totalHours = DATA.bookings.filter(b => b.Status === 'BOOKED').reduce((a,b) => a + b.Hours, 0);
+
+    document.getElementById('statRow').innerHTML = `
+      <div class="stat"><div class="lbl">Shifts created</div><div class="val">${totalShifts}</div><div class="sub">5 weeks total</div></div>
+      <div class="stat"><div class="lbl">Capacity</div><div class="val">${totalCap.toLocaleString()}</div><div class="sub">${totalBooked.toLocaleString()} booked · ${(totalCap-totalBooked).toLocaleString()} open</div></div>
+      <div class="stat"><div class="lbl">Bookings</div><div class="val">${activeBookings}</div><div class="sub">${cancelled} cancelled</div></div>
+      <div class="stat"><div class="lbl">Hours booked</div><div class="val">${totalHours.toLocaleString()}</div></div>
+      <div class="stat"><div class="lbl">Users registered</div><div class="val">${totalRiders}</div><div class="sub">of 500 NB numbers</div></div>
+      <div class="stat"><div class="lbl">Fill rate</div><div class="val">${totalCap ? Math.round(totalBooked/totalCap*100) : 0}%</div></div>
+    `;
+
+    // per-date summary
+    const byDate = {};
+    DATA.shifts.forEach(s => {
+      if (!byDate[s.Date]) byDate[s.Date] = { Date: s.Date, Day: s.Day, Shifts: 0, Capacity: 0, Booked: 0 };
+      byDate[s.Date].Shifts++;
+      byDate[s.Date].Capacity += s.Capacity;
+      byDate[s.Date].Booked += s.Booked;
+    });
+    const tbody = document.querySelector('#overviewTbl tbody');
+    tbody.innerHTML = Object.values(byDate).sort((a,b) => a.Date.localeCompare(b.Date)).map(d => {
+      const fill = d.Capacity ? Math.round(d.Booked/d.Capacity*100) : 0;
+      return `<tr>
+        <td class="mono">${d.Date}</td><td>${d.Day}</td>
+        <td class="mono">${d.Shifts}</td><td class="mono">${d.Capacity}</td>
+        <td class="mono">${d.Booked}</td><td class="mono">${d.Capacity - d.Booked}</td>
+        <td class="mono">${fill}%</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ============== BOOKINGS ==============
+  function renderBookings() {
+    const q = document.getElementById('bSearch').value.toLowerCase();
+    const st = document.getElementById('bStatus').value;
+    const dt = document.getElementById('bDate').value;
+    const rows = DATA.bookings
+      .filter(b => !q || (b.NB + b.Name + b.Email + b.ShiftID).toLowerCase().includes(q))
+      .filter(b => !st || b.Status === st)
+      .filter(b => !dt || b.Date === dt)
+      .sort((a,b) => (b.Timestamp || '').localeCompare(a.Timestamp || ''));
+    const tbody = document.querySelector('#bookingsTbl tbody');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--ink-3);">No bookings match.</td></tr>'; return; }
+    tbody.innerHTML = rows.map(b => `<tr>
+      <td class="mono" style="font-size:11px;">${b.BookingID}</td>
+      <td class="mono">${b.NB}</td>
+      <td>${escape(b.Name)}</td>
+      <td style="font-size:12px;">${escape(b.Email)}</td>
+      <td class="mono">${b.Date}</td>
+      <td class="mono">${b.Start}–${b.End}</td>
+      <td class="mono">${b.Hours}</td>
+      <td><span class="pill ${b.Status === 'BOOKED' ? 'pill-booked' : 'pill-cancelled'}">${b.Status}</span></td>
+      <td class="mono" style="font-size:11px;color:var(--ink-2);">${b.Timestamp}</td>
+      <td>${b.Status === 'BOOKED' ? `<button class="btn btn-danger btn-sm" onclick="adminCancel('${b.BookingID}')">Cancel</button>` : ''}</td>
+    </tr>`).join('');
+  }
+
+  async function adminCancel(bookingId) {
+    const reason = prompt('Reason for cancellation? (optional)') || 'admin';
+    if (reason === null) return;
+    try {
+      const res = await api('adminCancel', { bookingId, reason });
+      if (!res.ok) throw new Error(res.error);
+      await loadAll(); showAlert('ok', 'Booking cancelled.');
+    } catch (e) { showAlert('err', e.message); }
+  }
+
+  function exportBookings() {
+    const rows = DATA.bookings.map(b => [b.BookingID, b.NB, b.Name, b.Email, b.Date, b.Day, b.Start, b.End, b.Hours, b.Status, b.Timestamp, b.CancelledAt, b.CancelReason]);
+    downloadCSV(['BookingID','NB','Name','Email','Date','Day','Start','End','Hours','Status','Timestamp','CancelledAt','CancelReason'], rows, 'bookings.csv');
+  }
+
+  // ============== SHIFTS ==============
+  function renderShifts() {
+    const q = document.getElementById('sSearch').value.toLowerCase();
+    const dt = document.getElementById('sDate').value;
+    const st = document.getElementById('sStatus').value;
+    const rows = DATA.shifts
+      .filter(s => !q || (s.ShiftID + s.Date).toLowerCase().includes(q))
+      .filter(s => !dt || s.Date === dt)
+      .filter(s => !st || s.Status === st)
+      .sort((a,b) => a.Date.localeCompare(b.Date) || a.Start.localeCompare(b.Start));
+    const tbody = document.querySelector('#shiftsTbl tbody');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--ink-3);">No shifts match.</td></tr>'; return; }
+    tbody.innerHTML = rows.map(s => `<tr>
+      <td class="mono">${s.ShiftID}</td>
+      <td class="mono">${s.Date}</td>
+      <td>${s.Day}</td>
+      <td class="mono">${s.Start}</td>
+      <td class="mono">${s.End}</td>
+      <td class="mono">${s.Hours}</td>
+      <td class="mono">${s.Capacity}</td>
+      <td class="mono">${s.Booked}</td>
+      <td class="mono">${s.Available}</td>
+      <td><span class="pill ${s.Status === 'OPEN' ? 'pill-open' : s.Status === 'FULL' ? 'pill-full' : 'pill-cancelled'}">${s.Status}</span></td>
+      <td style="font-size:12px;color:var(--ink-2);">${escape(s.Notes || '')}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick='openEditShift(${JSON.stringify(s).replace(/'/g, "\\'")})'>Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteShift('${s.ShiftID}', ${s.Booked})">×</button>
+      </td>
+    </tr>`).join('');
+  }
+
+  function openAddShift() {
+    showModal(`
+      <h2>Add a new shift</h2>
+      <div class="field"><label>Date</label><input id="m_date" type="date"></div>
+      <div class="field"><label>Start (HH:MM)</label><input id="m_start" placeholder="e.g. 17:00"></div>
+      <div class="field"><label>End (HH:MM)</label><input id="m_end" placeholder="e.g. 21:00"></div>
+      <div class="field"><label>Hours</label><input id="m_hours" type="number" min="1" max="8" value="4"></div>
+      <div class="field"><label>Capacity (slots per shift)</label><input id="m_cap" type="number" min="1" value="5"></div>
+      <div class="field"><label>Notes (optional)</label><input id="m_notes"></div>
+      <div id="modalAlert"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAddShift()">Add shift</button>
+      </div>
+    `);
+  }
+  async function submitAddShift() {
+    const date = document.getElementById('m_date').value;
+    const start = document.getElementById('m_start').value;
+    const end = document.getElementById('m_end').value;
+    const hours = +document.getElementById('m_hours').value;
+    const capacity = +document.getElementById('m_cap').value;
+    const notes = document.getElementById('m_notes').value;
+    if (!date || !start || !end || !hours || !capacity) {
+      document.getElementById('modalAlert').innerHTML = '<div class="alert err">Fill all required fields.</div>'; return;
+    }
+    try {
+      const res = await api('adminAddShift', { date, start, end, hours, capacity, notes });
+      if (!res.ok) throw new Error(res.error);
+      closeModal(); await loadAll(); showAlert('ok', 'Shift ' + res.shiftId + ' added.');
+    } catch (e) {
+      document.getElementById('modalAlert').innerHTML = `<div class="alert err">${e.message}</div>`;
+    }
+  }
+
+  function openEditShift(s) {
+    showModal(`
+      <h2>Edit shift ${s.ShiftID}</h2>
+      <p style="color:var(--ink-2);font-size:13px;margin-bottom:12px;">${s.Date} (${s.Day}) · ${s.Start}–${s.End} · ${s.Hours}h</p>
+      <div class="field"><label>Capacity</label><input id="e_cap" type="number" min="${s.Booked}" value="${s.Capacity}">
+        <div style="font-size:11px;color:var(--ink-3);margin-top:4px;">Currently ${s.Booked} booked — can't reduce below this.</div>
+      </div>
+      <div class="field"><label>Status</label>
+        <select id="e_status">
+          <option value="OPEN" ${s.Status==='OPEN'?'selected':''}>OPEN</option>
+          <option value="FULL" ${s.Status==='FULL'?'selected':''}>FULL</option>
+          <option value="CLOSED" ${s.Status==='CLOSED'?'selected':''}>CLOSED</option>
+        </select>
+      </div>
+      <div class="field"><label>Notes</label><input id="e_notes" value="${escape(s.Notes || '')}"></div>
+      <div id="modalAlert"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitEditShift('${s.ShiftID}')">Save</button>
+      </div>
+    `);
+  }
+  async function submitEditShift(shiftId) {
+    const capacity = +document.getElementById('e_cap').value;
+    const status = document.getElementById('e_status').value;
+    const notes = document.getElementById('e_notes').value;
+    try {
+      const res = await api('adminEditShift', { shiftId, capacity, status, notes });
+      if (!res.ok) throw new Error(res.error);
+      closeModal(); await loadAll(); showAlert('ok', 'Shift ' + shiftId + ' updated.');
+    } catch (e) {
+      document.getElementById('modalAlert').innerHTML = `<div class="alert err">${e.message}</div>`;
+    }
+  }
+  async function deleteShift(shiftId, booked) {
+    if (booked > 0) return showAlert('err', `Shift ${shiftId} has ${booked} active bookings — cancel them first.`);
+    if (!confirm('Delete ' + shiftId + '? This cannot be undone.')) return;
+    try {
+      const res = await api('adminDeleteShift', { shiftId });
+      if (!res.ok) throw new Error(res.error);
+      await loadAll(); showAlert('ok', 'Shift deleted.');
+    } catch (e) { showAlert('err', e.message); }
+  }
+
+  // ============== RIDERS ==============
+  function renderRiders() {
+    const q = document.getElementById('rSearch').value.toLowerCase();
+    const f = document.getElementById('rActive').value;
+    const rows = DATA.riders
+      .filter(r => !q || (r.NB + (r.Name || '') + (r.Email || '')).toLowerCase().includes(q))
+      .filter(r => {
+        if (f === 'YES') return r.Active === 'YES';
+        if (f === 'NO') return r.Active === 'NO';
+        if (f === 'EMPTY') return !r.Name && !r.Email;
+        return true;
+      });
+    const tbody = document.querySelector('#ridersTbl tbody');
+    tbody.innerHTML = rows.map(r => `<tr>
+      <td class="mono">${r.NB}</td>
+      <td>${escape(r.Name || '')}</td>
+      <td style="font-size:12px;">${escape(r.Email || '')}</td>
+      <td style="font-size:12px;">${escape(r.Phone || '')}</td>
+      <td><span class="pill ${r.Active === 'YES' ? 'pill-yes' : 'pill-no'}">${r.Active || ''}</span></td>
+      <td><button class="btn btn-ghost btn-sm" onclick='openEditRider(${JSON.stringify(r).replace(/'/g, "\\'")})'>Edit</button></td>
+    </tr>`).join('');
+  }
+
+  function openEditRider(r) {
+    showModal(`
+      <h2>Edit user ${r.NB}</h2>
+      <div class="field"><label>Name</label><input id="r_name" value="${escape(r.Name || '')}"></div>
+      <div class="field"><label>Email</label><input id="r_email" type="email" value="${escape(r.Email || '')}"></div>
+      <div class="field"><label>Phone (optional)</label><input id="r_phone" value="${escape(r.Phone || '')}"></div>
+      <div class="field"><label>Active</label>
+        <select id="r_active">
+          <option value="YES" ${r.Active === 'YES' ? 'selected' : ''}>YES</option>
+          <option value="NO" ${r.Active === 'NO' ? 'selected' : ''}>NO</option>
+        </select>
+      </div>
+      <div id="modalAlert"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitEditRider('${r.NB}')">Save</button>
+      </div>
+    `);
+  }
+  async function submitEditRider(nb) {
+    const name = document.getElementById('r_name').value;
+    const email = document.getElementById('r_email').value;
+    const phone = document.getElementById('r_phone').value;
+    const active = document.getElementById('r_active').value;
+    try {
+      const res = await api('adminUpdateRider', { nb, name, email, phone, active });
+      if (!res.ok) throw new Error(res.error);
+      closeModal(); await loadAll(); showAlert('ok', 'User ' + nb + ' updated.');
+    } catch (e) {
+      document.getElementById('modalAlert').innerHTML = `<div class="alert err">${e.message}</div>`;
+    }
+  }
+
+  function exportRiders() {
+    const rows = DATA.riders.map(r => [r.NB, r.Name, r.Email, r.Phone, r.Active]);
+    downloadCSV(['NB','Name','Email','Phone','Active'], rows, 'riders.csv');
+  }
+
+  // ============== HOURS ==============
+  function renderHours() {
+    const q = document.getElementById('hSearch').value.toLowerCase();
+    const wk = document.getElementById('hWeek').value;
+    const sort = document.getElementById('hSort').value;
+
+    const wkRange = wk === 'all' ? null : { start: wk, end: addDays(wk, 6) };
+    const filteredMap = {};  // NB -> hours in selected week (or total if 'all')
+    const totalMap = {};     // NB -> hours across all time
+    DATA.bookings.filter(b => b.Status === 'BOOKED').forEach(b => {
+      totalMap[b.NB] = (totalMap[b.NB] || 0) + b.Hours;
+      if (wkRange && (b.Date < wkRange.start || b.Date > wkRange.end)) return;
+      filteredMap[b.NB] = (filteredMap[b.NB] || 0) + b.Hours;
+    });
+    let rows = DATA.riders
+      .filter(r => r.Name || r.Email || totalMap[r.NB])
+      .map(r => ({ NB: r.NB, Name: r.Name || '', h: filteredMap[r.NB] || 0, total: totalMap[r.NB] || 0 }))
+      .filter(r => !q || (r.NB + r.Name).toLowerCase().includes(q));
+    if (sort === 'hours-desc') rows.sort((a,b) => b.h - a.h);
+    if (sort === 'hours-asc') rows.sort((a,b) => a.h - b.h);
+    if (sort === 'nb-asc') rows.sort((a,b) => parseInt(a.NB.replace('NB','')) - parseInt(b.NB.replace('NB','')));
+    if (sort === 'over-week') rows = rows.filter(r => r.h > 56).sort((a,b) => b.h - a.h);
+    if (sort === 'over-total') rows = rows.filter(r => r.total > 160).sort((a,b) => b.total - a.total);
+
+    const grid = document.getElementById('hoursGrid');
+    if (!rows.length) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--ink-3);">No users match.</div>'; return; }
+    grid.innerHTML = rows.map(r => {
+      const overTotal = r.total > 160;
+      const overWeek = r.h > 56 && wk !== 'all';
+      const cls = overTotal ? 'over' : (overWeek ? 'over' : '');
+      const totalLine = wk === 'all'
+        ? ''
+        : '<div style="font-size:10px;color:var(--ink-3);margin-top:4px;font-family:\'JetBrains Mono\',monospace;">Total: ' + r.total + '/160h' + (overTotal ? ' ⚠' : '') + '</div>';
+      return '<div class="hours-card ' + cls + '">' +
+        '<div class="nb">' + r.NB + '</div>' +
+        '<div class="nm">' + (escape(r.Name) || '—') + '</div>' +
+        '<div class="h">' + r.h + 'h' + (overWeek ? ' ⚠' : '') + '</div>' +
+        totalLine +
+      '</div>';
+    }).join('');
+  }
+
+  // ============== ENFORCE 160H CAP ==============
+  async function enforceCaps() {
+    // Pre-compute which riders are over the cap so the confirm message is concrete
+    const totals = {};
+    DATA.bookings.filter(b => b.Status === 'BOOKED').forEach(b => { totals[b.NB] = (totals[b.NB] || 0) + b.Hours; });
+    const overRiders = Object.entries(totals).filter(([nb, h]) => h > 160);
+    if (!overRiders.length) {
+      showAlert('info', 'No users are over 160h. Nothing to enforce.');
+      return;
+    }
+    const previewLines = overRiders.map(([nb, h]) => '  • ' + nb + ': ' + h + 'h (excess ' + (h - 160) + 'h)').join('\n');
+    const msg = 'Enforce 160h cap?\n\n' +
+      overRiders.length + ' user(s) currently over the cap:\n' +
+      previewLines + '\n\n' +
+      'Their most recently booked shifts will be cancelled until each is at or under 160h. ' +
+      'Affected shift capacities will reopen. This cannot be undone automatically — though the ' +
+      'cancelled bookings remain in the Bookings tab with status CANCELLED for audit.';
+    if (!confirm(msg)) return;
+    showAlert('info', 'Enforcing — this can take up to a minute…');
+    try {
+      const res = await api('adminEnforceCaps');
+      if (!res.ok) throw new Error(res.error || 'Failed');
+      const lines = (res.summary || []).map(s =>
+        s.nb + ': ' + s.previousHours + 'h → ' + s.newHours + 'h (' + s.cancelledCount + ' booking' + (s.cancelledCount === 1 ? '' : 's') + ' cancelled)'
+      );
+      const total = (res.summary || []).reduce((a, s) => a + s.cancelledCount, 0);
+      await loadAll(); // refresh all tabs
+      if (lines.length) {
+        alert('Done. ' + total + ' booking(s) cancelled across ' + lines.length + ' user(s):\n\n' + lines.join('\n'));
+      } else {
+        showAlert('info', 'Already within cap — no changes.');
+      }
+    } catch (e) {
+      showAlert('err', e.message);
+    }
+  }
+
+  function addDays(dateStr, n) {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0,10);
+  }
+
+  // ============== MODAL ==============
+  function showModal(html) { document.getElementById('modal').innerHTML = html; document.getElementById('modalBg').classList.add('open'); }
+  function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+  document.getElementById('modalBg').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+  // ============== ALERTS ==============
+  function showAlert(type, msg) { document.getElementById('alert').innerHTML = `<div class="alert ${type}">${msg}</div>`; setTimeout(clearAlert, 4000); }
+  function clearAlert() { document.getElementById('alert').innerHTML = ''; }
+
+  // ============== HELPERS ==============
+  function escape(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function downloadCSV(headers, rows, filename) {
+    const csv = [headers, ...rows].map(r => r.map(c => {
+      const s = String(c == null ? '' : c);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Re-auth from session storage
+  (async function init() {
+    const stored = sessionStorage.getItem('admin_pw');
+    if (stored) {
+      document.getElementById('pw').value = stored;
+      await login();
+    }
+  })();
+
+  document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+</script>
+</body>
+</html>
