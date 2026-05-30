@@ -6,6 +6,14 @@ export async function api<T = Record<string, unknown>>(
   action: string,
   params: Record<string, unknown> = {},
 ): Promise<ApiResponse<T>> {
+  // Fail loud at the boundary: an empty URL makes fetch() POST to the current page
+  // (the static-asset host), which answers 405. That's never what we want.
+  if (!API_URL) {
+    throw new Error(
+      "API URL is not configured. NEXT_PUBLIC_API_URL was missing at build time — " +
+        "set it in next-app/.env.production (or .env.local for dev) and rebuild.",
+    );
+  }
   const res = await fetch(API_URL, {
     method: "POST",
     body: JSON.stringify({ action, ...params }),
