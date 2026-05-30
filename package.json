@@ -1,0 +1,12 @@
+{
+  "name": "rider-booking-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"scripts/**/*.test.mjs\"",
+    "build:forecast": "node scripts/build-forecast.mjs"
+  },
+  "devDependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
