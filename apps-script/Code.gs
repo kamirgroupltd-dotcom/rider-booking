@@ -189,10 +189,13 @@ function getDates(p) {
   const dates = {};
   rows.filter(r => cityMatch(r, p.city)).forEach(r => {
     const d = fmtDate(r.Date);
-    if (!dates[d]) dates[d] = { date: d, day: r.Day, shifts: 0, capacity: 0, booked: 0 };
+    if (!dates[d]) dates[d] = { date: d, day: r.Day, shifts: 0, capacity: 0, booked: 0, availableShifts: 0 };
     dates[d].shifts += 1;
     dates[d].capacity += Number(r.Capacity) || 0;
     dates[d].booked += Number(r.Booked) || 0;
+    // Count of bookable shift WINDOWS that day (not summed capacity) — drives the
+    // "N shifts" label on the date picker.
+    if (r.Status === 'OPEN' && (Number(r.Available) || 0) > 0) dates[d].availableShifts += 1;
   });
   return { ok: true, dates: Object.values(dates).sort((a,b) => a.date.localeCompare(b.date)) };
 }

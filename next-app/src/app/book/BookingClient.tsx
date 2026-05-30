@@ -286,7 +286,7 @@ function Step2({ dates, loading, alert, activeWeek, setActiveWeek, onPickDate, o
   return (
     <section className="panel">
       <h1>Pick a date</h1>
-      <p className="lede">All 5 weeks are open. Numbers below show available shift slots per day.</p>
+      <p className="lede">Numbers show how many shift windows are open each day. Book early — popular days fill fast.</p>
       <AlertView a={alert} />
       <div className="week-tabs">
         {weekKeys.map((wk, i) => {
@@ -305,9 +305,9 @@ function Step2({ dates, loading, alert, activeWeek, setActiveWeek, onPickDate, o
       <div className="date-grid">
         {days.map((d) => {
           const dt = new Date(d.date + "T00:00:00");
-          const slots = typeof d.availableShifts === "number" ? d.availableShifts : Math.max(0, d.capacity - d.booked);
-          const cls = slots <= 0 ? " full" : slots <= 3 ? " low" : "";
-          const availText = slots <= 0 ? "Full" : slots <= 3 ? `Only ${slots} left` : `${slots} time slots`;
+          const slots = typeof d.availableShifts === "number" ? d.availableShifts : d.shifts;
+          const cls = slots <= 0 ? " full" : slots <= 2 ? " low" : "";
+          const availText = slots <= 0 ? "Full" : slots <= 2 ? `Only ${slots} shift${slots === 1 ? "" : "s"} left` : `${slots} shifts`;
           return (
             <div key={d.date} className={`date-card${cls}`} onClick={() => onPickDate(d.date)}>
               <div className="day">{dt.toLocaleDateString("en-GB", { weekday: "short" })}</div>
