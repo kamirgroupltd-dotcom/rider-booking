@@ -64,7 +64,7 @@ function handle(e) {
     let result;
     switch (action) {
       case 'ping':              result = { ok: true, msg: 'pong' }; break;
-      case 'version':           result = { ok: true, version: 'tz3-text-start', spreadsheetTz: ss().getSpreadsheetTimeZone(), scriptTz: Session.getScriptTimeZone() }; break;
+      case 'version':           result = { ok: true, version: 'tz4-city-scope', spreadsheetTz: ss().getSpreadsheetTimeZone(), scriptTz: Session.getScriptTimeZone() }; break;
       case 'getShifts':         result = getShifts(p); break;
       case 'getDates':          result = getDates(p); break;
       case 'getMyBookings':     result = getMyBookings(p); break;
@@ -183,11 +183,24 @@ function cityMatch(row, wantCity) {
   return normalizeCity(row.City) === normalizeCity(wantCity);
 }
 
+// The city a public request is scoped to. A rider only ever sees and books shifts
+// in their OWN city, so derive it from the authenticated NB rather than trusting a
+// client-supplied param (which the booking UI doesn't even send). Falls back to an
+// explicit p.city, then to '' (lenient: unassigned riders / pre-migration see all).
+function scopeCity(p) {
+  if (p && p.nb) {
+    const { rows } = sheetToObjects(ss().getSheetByName('Riders'));
+    const rider = rows.find(r => r['NB Number'] === p.nb);
+    if (rider && rider.City) return normalizeCity(rider.City);
+  }
+  return (p && p.city) ? p.city : '';
+}
+
 function getDates(p) {
   p = p || {};
   const { rows } = sheetToObjects(ss().getSheetByName('Shifts'));
   const dates = {};
-  rows.filter(r => cityMatch(r, p.city)).forEach(r => {
+  rows.filter(r => cityMatch(r, scopeCity(p))).forEach(r => {
     const d = fmtDate(r.Date);
     if (!dates[d]) dates[d] = { date: d, day: r.Day, shifts: 0, capacity: 0, booked: 0, availableShifts: 0 };
     dates[d].shifts += 1;
@@ -202,8 +215,9 @@ function getDates(p) {
 
 function getShifts(p) {
   const { rows } = sheetToObjects(ss().getSheetByName('Shifts'));
+  const wantCity = scopeCity(p);
   const filtered = rows
-    .filter(r => cityMatch(r, p.city))
+    .filter(r => cityMatch(r, wantCity))
     .filter(r => !p.date || fmtDate(r.Date) === p.date)
     .filter(r => r.Status === 'OPEN' || r.Status === 'FULL' || !p.openOnly)
     .map(r => ({
