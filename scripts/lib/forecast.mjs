@@ -18,7 +18,7 @@ export function ridersNeeded(orders, ordersPerRiderHr = ORDERS_PER_RIDER_HR, buf
   return Math.ceil((o / ordersPerRiderHr) * (1 + bufferPct));
 }
 
-const WEEK_BLOCK_COLS = [2, 13, 24, 35, 46]; // "Tot" column index of each of the 5 week blocks
+const WEEK_BLOCK_COLS = [2, 12, 22, 32, 42]; // "Tot" column index of each of the 5 week blocks (Time=+1, Mon..Sun=+2..+8)
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 function ddmmyyToISO(s) {
@@ -40,23 +40,68 @@ export function timeToSlot(time) {
   return h * 2 + (m >= 30 ? 1 : 0);
 }
 
-export function findOperatingSpans(ridersBySlot) {
-  const spans = [];
-  let i = 0;
+// Active mask that bridges a single isolated 30-min zero-dip (active on both sides)
+// so a momentary lull doesn't fragment a day into spurious overlapping spans.
+// Capacity is still computed from the real per-slot demand later, so bridged
+// slots contribute 0 to a tile's peak — they only preserve span continuity.
+function bridgedMask(ridersBySlot) {
   const n = ridersBySlot.length;
+  const active = ridersBySlot.map((v) => (Number(v) || 0) > 0);
+  const out = active.slice();
+  for (let i = 1; i < n - 1; i++) {
+    if (!active[i] && active[i - 1] && active[i + 1]) out[i] = true;
+  }
+  return out;
+}
+
+const MERGE_GAP_HOURS = 1; // demand spans separated by <= 1h are merged into one window
+
+export function findOperatingSpans(ridersBySlot) {
+  const active = bridgedMask(ridersBySlot);
+  const n = active.length;
+
+  // 1) Raw contiguous active slot-runs -> whole-hour [startHour, endHour) windows.
+  const raw = [];
+  let i = 0;
   while (i < n) {
-    if ((ridersBySlot[i] || 0) <= 0) { i++; continue; }
+    if (!active[i]) { i++; continue; }
     let j = i;
-    while (j < n && (ridersBySlot[j] || 0) > 0) j++;
-    // slots [i, j) are active. Convert to whole hours.
-    let startHour = Math.floor(i / 2);
-    let endHour = Math.ceil(j / 2);
-    if ((endHour - startHour) % 2 === 1) endHour += 1; // keep spans even so 2/4/6 tile exactly
-    if (endHour > 24) endHour = 24;
-    spans.push({ startHour, endHour });
+    while (j < n && active[j]) j++;
+    raw.push({ startHour: Math.floor(i / 2), endHour: Math.min(24, Math.ceil(j / 2)) });
     i = j;
   }
-  return spans;
+
+  // 2) Merge windows within MERGE_GAP_HOURS of each other. This folds tiny tail
+  //    blips into the adjacent shift and removes the near-midnight fragments that
+  //    used to round into overlapping shifts. Genuine split-service gaps (a dead
+  //    afternoon between lunch and dinner) are wider than 1h and stay separate.
+  const merged = [];
+  for (const s of raw) {
+    const last = merged[merged.length - 1];
+    if (last && s.startHour - last.endHour <= MERGE_GAP_HOURS) {
+      last.endHour = Math.max(last.endHour, s.endHour);
+    } else {
+      merged.push({ ...s });
+    }
+  }
+
+  // 3) Even-length rounding so 2/4/6 tile exactly: prefer extending the end
+  //    forward, but at the midnight boundary extend the start backward instead
+  //    so a shift never overshoots 24:00.
+  for (const s of merged) {
+    if ((s.endHour - s.startHour) % 2 === 1) {
+      if (s.endHour < 24) s.endHour += 1;
+      else s.startHour = Math.max(0, s.startHour - 1);
+    }
+  }
+
+  // 4) Final guard: clamp each start to the previous end so rounding can never
+  //    produce overlapping windows.
+  for (let k = 1; k < merged.length; k++) {
+    if (merged[k].startHour < merged[k - 1].endHour) merged[k].startHour = merged[k - 1].endHour;
+  }
+
+  return merged.filter((s) => s.endHour - s.startHour >= 2);
 }
 
 function hhmm(hour) {

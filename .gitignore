@@ -40,3 +40,4 @@ yarn-error.log*
 
 # OS
 *.tmp
+scripts/out/

@@ -34,6 +34,25 @@ test("reshapeCitySheet: emits one record per (date,time) with orders+ridersNeede
   assert.equal(sunMidnight.RidersNeeded, 12); // 20/2*1.15=11.5 -> 12
 });
 
+test("reshapeCitySheet: extracts ALL week blocks at stride-10 columns [2,12,22,32,42]", () => {
+  // Two week blocks: block1 Tot@2 (days 4..10), block2 Tot@12 (Time@13, days 14..20).
+  const blank = null;
+  const r1 = ["Total", blank, "Tot", "Time", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+    blank, "Tot", "Time", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const r2 = ["x", blank, "w1", blank, "01/06/26", "02/06/26", "03/06/26", "04/06/26", "05/06/26", "06/06/26", "07/06/26",
+    blank, "w2", blank, "08/06/26", "09/06/26", "10/06/26", "11/06/26", "12/06/26", "13/06/26", "14/06/26"];
+  const r4 = [0, blank, 0, "0:00", 4, 0, 0, 0, 0, 0, 0,
+    blank, 0, "0:00", 8, 0, 0, 0, 0, 0, 0]; // week1 Mon=4, week2 Mon=8
+  const rows = [[], r1, r2, [], r4];
+  const recs = reshapeCitySheet(rows, "Berlin");
+  // 1 time row * 7 days * 2 weeks = 14 records
+  assert.equal(recs.length, 14);
+  const w1mon = recs.find((r) => r.Date === "2026-06-01" && r.Time === "00:00");
+  const w2mon = recs.find((r) => r.Date === "2026-06-08" && r.Time === "00:00");
+  assert.equal(w1mon.Orders, 4);
+  assert.equal(w2mon.Orders, 8); // proves the 2nd week block is read
+});
+
 test("findOperatingSpans: returns whole-hour, even-length [startHour,endHour) spans where demand>0", () => {
   // 48 slots; put demand in slots 20-23 (10:00-12:00) and 34-39 (17:00-20:00)
   const r = new Array(48).fill(0);
@@ -52,6 +71,22 @@ test("findOperatingSpans: rounds odd-length span up to even", () => {
   const spans = findOperatingSpans(r);
   // active [0,5) => startHour 0, endHour ceil(5/2)=3 (odd) -> bumped to 4
   assert.deepEqual(spans, [{ startHour: 0, endHour: 4 }]);
+});
+
+test("findOperatingSpans: bridges a single 30-min zero-dip into one span", () => {
+  const r = new Array(48).fill(0);
+  for (let i = 20; i <= 45; i++) r[i] = 4; // 10:00..22:30
+  r[46] = 0; // 23:00 momentary dip (single zero slot)
+  r[47] = 1; // 23:30 tiny blip
+  // single zero at slot 46 sits between active 45 and 47 -> bridged -> one span [20,48)
+  assert.deepEqual(findOperatingSpans(r), [{ startHour: 10, endHour: 24 }]);
+});
+
+test("findOperatingSpans: odd span ending at midnight extends start back, never past 24:00", () => {
+  const r = new Array(48).fill(0);
+  r[47] = 2; // lone 23:30 blip, slots 44-46 all zero -> NOT bridged (gap > 1) -> isolated span
+  // [47,48): start floor(47/2)=23, end ceil(48/2)=24, odd -> can't extend past 24 -> start back to 22
+  assert.deepEqual(findOperatingSpans(r), [{ startHour: 22, endHour: 24 }]);
 });
 
 test("tileDay: greedy longest-fit 6/4/2, capacity = peak ridersNeeded in tile", () => {
