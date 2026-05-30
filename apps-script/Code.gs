@@ -131,12 +131,12 @@ function fmtDate(d) {
 
 function fmtTime(t) {
   if (t instanceof Date) {
-    // UTC formatting — see fmtDate note. Without this, script timezone
-    // drift (e.g. Asia/Singapore default on some Gmail accounts) shifts
-    // 17:00 to 01:00 next day.
-    const hh = String(t.getUTCHours()).padStart(2, '0');
-    const mm = String(t.getUTCMinutes()).padStart(2, '0');
-    return hh + ':' + mm;
+    // Self-correcting timezone read. Sheets coerces a written "HH:MM" string into
+    // a time-value using the SPREADSHEET timezone, so formatting the Date back in
+    // that SAME timezone always recovers the original clock string — for any tz.
+    // The old getUTCHours() assumed a UTC anchor and drifted +Nh whenever the
+    // spreadsheet tz wasn't UTC (the 02:00 / +8h shift-display bug).
+    return Utilities.formatDate(t, ss().getSpreadsheetTimeZone(), 'HH:mm');
   }
   return String(t);
 }
