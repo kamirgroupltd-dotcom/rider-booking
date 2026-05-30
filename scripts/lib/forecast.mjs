@@ -11,3 +11,9 @@ export const NORMALIZE_CITY = {
 export function normalizeCity(name) {
   return NORMALIZE_CITY[name] ?? name;
 }
+
+export function ridersNeeded(orders, ordersPerRiderHr = ORDERS_PER_RIDER_HR, bufferPct = BUFFER_PCT) {
+  const o = Number(orders) || 0;
+  if (o <= 0) return 0;
+  return Math.ceil((o / ordersPerRiderHr) * (1 + bufferPct));
+}
