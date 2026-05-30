@@ -64,6 +64,7 @@ function handle(e) {
     let result;
     switch (action) {
       case 'ping':              result = { ok: true, msg: 'pong' }; break;
+      case 'version':           result = { ok: true, version: 'tz3-text-start', spreadsheetTz: ss().getSpreadsheetTimeZone(), scriptTz: Session.getScriptTimeZone() }; break;
       case 'getShifts':         result = getShifts(p); break;
       case 'getDates':          result = getDates(p); break;
       case 'getMyBookings':     result = getMyBookings(p); break;
@@ -520,6 +521,16 @@ function appendRowByHeaders(sheet, obj) {
   return sheet.getLastRow();
 }
 
+// Write an "HH:MM" clock value into a cell as PLAIN TEXT. Setting the number
+// format to '@' before setValue stops Google Sheets coercing it into a
+// time-value Date, which getValues() would later read back shifted by the
+// spreadsheet's UTC offset (the 02:00 / +8h shift-display bug).
+function setTimeTextCell(sheet, row, header, value) {
+  const cell = sheet.getRange(row, headerCol(sheet, header));
+  cell.setNumberFormat('@');
+  cell.setValue(value);
+}
+
 function adminEditShift(p) {
   requireAdmin(p);
   const { shiftId, capacity, status, notes } = p;
@@ -757,12 +768,16 @@ function adminGenerateShifts(p) {
         const capacity = peakOverHours(arr, w.startHour, w.endHour);
         if (capacity <= 0) return;
         const id = cityPrefix(city) + '-S' + String(++seq).padStart(4, '0');
-        appendRowByHeaders(shiftsSh, {
+        const rownum = appendRowByHeaders(shiftsSh, {
           ShiftID: id, City: city, Date: iso, Day: day,
-          Start: hhmmHour(w.startHour), End: hhmmHour(w.endHour), Hours: w.hours, Capacity: capacity,
+          Start: '', End: '', Hours: w.hours, Capacity: capacity,
           Booked: 0, Available: capacity, Status: 'OPEN',
           Overnight: w.overnight ? 'YES' : 'NO', Notes: 'auto'
         });
+        // Write times as PLAIN TEXT so Sheets never coerces "00:00" into a
+        // timezone-sensitive time-value (root cause of the +Nh read drift).
+        setTimeTextCell(shiftsSh, rownum, 'Start', hhmmHour(w.startHour));
+        setTimeTextCell(shiftsSh, rownum, 'End', hhmmHour(w.endHour));
         created++;
       });
     });
