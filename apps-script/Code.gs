@@ -848,10 +848,19 @@ function wipeBookingsCore() {
   const lock = LockService.getScriptLock(); lock.waitLock(30000);
   try {
     // 1) Delete all Bookings data rows (keep header row 1).
+    //    Google Sheets refuses to delete EVERY non-frozen row, so when the header
+    //    row is frozen (the usual case) we temporarily drop the freeze, delete the
+    //    data rows, then restore the freeze.
     const bk = ss().getSheetByName('Bookings');
     const bkLast = bk.getLastRow();
     let deletedBookings = 0;
-    if (bkLast > 1) { bk.deleteRows(2, bkLast - 1); deletedBookings = bkLast - 1; }
+    if (bkLast > 1) {
+      const frozen = bk.getFrozenRows();
+      if (frozen > 0) bk.setFrozenRows(0);
+      bk.deleteRows(2, bkLast - 1);
+      if (frozen > 0) bk.setFrozenRows(frozen);
+      deletedBookings = bkLast - 1;
+    }
 
     // 2) Reset every shift: Booked=0, Available=Capacity, Status=OPEN (skip CLOSED).
     const shSh = ss().getSheetByName('Shifts');
