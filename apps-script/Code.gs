@@ -642,14 +642,45 @@ function tileDay(ridersBySlot) {
   return shifts;
 }
 
+// Consistent shift windows for a whole week: the union of demand across all 7 days
+// (per slot, the busiest day) defines one operating envelope, tiled into 2/4/6h.
+// Every day then gets the SAME window boundaries; capacity is sized per day below.
+function weeklyWindows(daySlotArrays) {
+  const union = new Array(48).fill(0);
+  daySlotArrays.forEach(arr => { for (let i = 0; i < 48; i++) union[i] = Math.max(union[i], arr[i] || 0); });
+  const windows = [];
+  findOperatingSpans(union).forEach(span => {
+    let h = span.startHour, remaining = span.endHour - span.startHour;
+    while (remaining > 0) {
+      let len = SHIFT_LENGTHS.find(L => L <= remaining); if (!len) len = 2;
+      windows.push({ startHour: h, endHour: h + len, hours: len, overnight: (h + len) >= 24 });
+      h += len; remaining -= len;
+    }
+  });
+  return windows;
+}
+function peakOverHours(ridersBySlot, startHour, endHour) {
+  let pk = 0;
+  for (let slot = startHour * 2; slot < endHour * 2 && slot < ridersBySlot.length; slot++) pk = Math.max(pk, ridersBySlot[slot] || 0);
+  return pk;
+}
+function hhmmHour(hour) { const h = ((hour % 24) + 24) % 24; return String(h).padStart(2, '0') + ':00'; }
+
 // Build a 48-slot riders-needed array from this date's Forecast rows.
 function buildRidersBySlot(forecastRows) {
   const arr = new Array(48).fill(0);
   forecastRows.forEach(r => {
-    const t = fmtTime(r.Time);
-    const m = String(t).match(/^(\d{1,2}):(\d{2})$/);
-    if (!m) return;
-    const slot = Number(m[1]) * 2 + (Number(m[2]) >= 30 ? 1 : 0);
+    // Prefer the numeric Slot column (0-47): Google Sheets imports "00:00" as a
+    // *time value*, and re-parsing it through fmtTime() shifts every slot by the
+    // spreadsheet timezone (the 2am-shift bug). Slot is timezone-proof.
+    let slot;
+    if (r.Slot !== undefined && r.Slot !== null && r.Slot !== '') {
+      slot = Number(r.Slot);
+    } else {
+      const m = String(fmtTime(r.Time)).match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) return;
+      slot = Number(m[1]) * 2 + (Number(m[2]) >= 30 ? 1 : 0);
+    }
     if (slot >= 0 && slot < 48) {
       arr[slot] = Math.max(arr[slot], Number(r['Riders Needed']) || 0);
     }
@@ -695,6 +726,11 @@ function adminGenerateShifts(p) {
       .filter(r => normalizeCity(r.City) === city && dateSet[fmtDate(r.Date)]);
     if (!forecast.length) return { ok: false, error: 'No forecast rows for ' + city + ' in week of ' + weekStart + ' — import the forecast CSV first.' };
 
+    // Per-day demand arrays, then ONE consistent set of windows from the week's union.
+    const dayArr = {};
+    dates.forEach(iso => { dayArr[iso] = buildRidersBySlot(forecast.filter(r => fmtDate(r.Date) === iso)); });
+    const windows = weeklyWindows(dates.map(iso => dayArr[iso]));
+
     // Which shifts (with live bookings) already exist, per city+date.
     let shiftRows = sheetToObjects(shiftsSh).rows;
     const bookedShiftIds = {};
@@ -713,23 +749,24 @@ function adminGenerateShifts(p) {
           .forEach(r => { shiftsSh.deleteRow(r._row); deleted.push(r.ShiftID); });
         shiftRows = sheetToObjects(shiftsSh).rows; // refresh after deletions
         seq = maxShiftSeq(shiftRows, city);
-        if (existing.some(r => bookedShiftIds[r.ShiftID])) { /* keep booked, still add new below */ }
       }
-      const dayRows = forecast.filter(r => fmtDate(r.Date) === iso);
-      const arr = buildRidersBySlot(dayRows);
+      const arr = dayArr[iso];
       const day = isoDayName(iso);
-      tileDay(arr).forEach(s => {
+      // Consistent windows; capacity = THIS day's peak in each window; skip empty windows.
+      windows.forEach(w => {
+        const capacity = peakOverHours(arr, w.startHour, w.endHour);
+        if (capacity <= 0) return;
         const id = cityPrefix(city) + '-S' + String(++seq).padStart(4, '0');
         appendRowByHeaders(shiftsSh, {
           ShiftID: id, City: city, Date: iso, Day: day,
-          Start: s.start, End: s.end, Hours: s.hours, Capacity: s.capacity,
-          Booked: 0, Available: s.capacity, Status: 'OPEN',
-          Overnight: s.overnight ? 'YES' : 'NO', Notes: 'auto'
+          Start: hhmmHour(w.startHour), End: hhmmHour(w.endHour), Hours: w.hours, Capacity: capacity,
+          Booked: 0, Available: capacity, Status: 'OPEN',
+          Overnight: w.overnight ? 'YES' : 'NO', Notes: 'auto'
         });
         created++;
       });
     });
-    return { ok: true, city, weekStart, created, skipped, deleted };
+    return { ok: true, city, weekStart, created, skipped, deleted, windows: windows.map(w => hhmmHour(w.startHour) + '-' + hhmmHour(w.endHour)) };
   } finally { lock.releaseLock(); }
 }
 

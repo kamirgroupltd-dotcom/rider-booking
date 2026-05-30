@@ -1,7 +1,7 @@
 // scripts/lib/forecast.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ridersNeeded, reshapeCitySheet, findOperatingSpans, tileDay } from "./forecast.mjs";
+import { ridersNeeded, reshapeCitySheet, findOperatingSpans, tileDay, weeklyWindows, weekShifts } from "./forecast.mjs";
 
 test("ridersNeeded: ceil(orders / 2 * 1.15)", () => {
   assert.equal(ridersNeeded(0), 0);
@@ -113,4 +113,32 @@ test("tileDay: 8h span tiles as 6+2", () => {
 
 test("tileDay: empty demand -> no shifts", () => {
   assert.deepEqual(tileDay(new Array(48).fill(0)), []);
+});
+
+test("weeklyWindows: union across days defines one consistent set of windows", () => {
+  const d1 = new Array(48).fill(0);
+  for (let i = 16; i <= 31; i++) d1[i] = 5; // day1 operates 08:00-16:00
+  const d2 = new Array(48).fill(0);
+  for (let i = 24; i <= 39; i++) d2[i] = 3; // day2 operates 12:00-20:00
+  // union active 08:00-20:00 -> span [8,20) (12h) -> 6+6
+  assert.deepEqual(
+    weeklyWindows([d1, d2]).map((w) => [w.startHour, w.endHour]),
+    [[8, 14], [14, 20]],
+  );
+});
+
+test("weekShifts: same windows every day, capacity = that day's peak, zero-demand windows skipped", () => {
+  const d1 = new Array(48).fill(0);
+  for (let i = 16; i <= 27; i++) d1[i] = 8; // Mon busy 08:00-14:00 only
+  const d2 = new Array(48).fill(0);
+  for (let i = 28; i <= 39; i++) d2[i] = 4; // Tue busy 14:00-20:00 only
+  const shifts = weekShifts([
+    { date: "2026-06-01", day: "Monday", slots: d1 },
+    { date: "2026-06-02", day: "Tuesday", slots: d2 },
+  ]);
+  const mon = shifts.filter((s) => s.date === "2026-06-01").map((s) => [s.start, s.end, s.capacity]);
+  const tue = shifts.filter((s) => s.date === "2026-06-02").map((s) => [s.start, s.end, s.capacity]);
+  // union windows = [08:00-14:00],[14:00-20:00]; each day only fills the one it has demand in
+  assert.deepEqual(mon, [["08:00", "14:00", 8]]);
+  assert.deepEqual(tue, [["14:00", "20:00", 4]]);
 });

@@ -16,7 +16,7 @@ for (const sheetName of wb.SheetNames) {
 }
 
 // CSV (formula-injection safe), columns match the Forecast tab + leading City
-const headers = ["City", "Date", "Day", "Time", "Orders", "Riders Needed"];
+const headers = ["City", "Date", "Day", "Time", "Orders", "Riders Needed", "Slot"];
 const esc = (v) => {
   let s = String(v == null ? "" : v);
   if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
@@ -24,7 +24,7 @@ const esc = (v) => {
 };
 const lines = [headers.join(",")];
 for (const r of all) {
-  lines.push([r.City, r.Date, r.Day, r.Time, r.Orders, r.RidersNeeded].map(esc).join(","));
+  lines.push([r.City, r.Date, r.Day, r.Time, r.Orders, r.RidersNeeded, r.slot].map(esc).join(","));
 }
 mkdirSync("scripts/out", { recursive: true });
 writeFileSync(OUTPUT, lines.join("\n"), "utf8");

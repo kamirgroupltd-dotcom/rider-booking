@@ -110,7 +110,7 @@ function hhmm(hour) {
 }
 
 // peak ridersNeeded across the slots covering [startHour, endHour)
-function peakOverHours(ridersBySlot, startHour, endHour) {
+export function peakOverHours(ridersBySlot, startHour, endHour) {
   let peak = 0;
   for (let slot = startHour * 2; slot < endHour * 2 && slot < ridersBySlot.length; slot++) {
     peak = Math.max(peak, ridersBySlot[slot] || 0);
@@ -138,6 +138,49 @@ export function tileDay(ridersBySlot) {
     }
   }
   return shifts;
+}
+
+// Consistent shift windows for a whole week. The union of demand across all days
+// (per slot, the busiest day) defines the operating envelope, so every day gets the
+// SAME window boundaries — then capacity is sized per day. daySlotArrays: 48-slot
+// arrays. Returns numeric [{startHour, endHour, hours, overnight}].
+export function weeklyWindows(daySlotArrays) {
+  const union = new Array(SLOTS_PER_DAY).fill(0);
+  for (const arr of daySlotArrays) {
+    for (let i = 0; i < SLOTS_PER_DAY; i++) union[i] = Math.max(union[i], arr[i] || 0);
+  }
+  const windows = [];
+  for (const { startHour, endHour } of findOperatingSpans(union)) {
+    let h = startHour;
+    let remaining = endHour - startHour;
+    while (remaining > 0) {
+      const len = SHIFT_LENGTHS.find((L) => L <= remaining) ?? 2;
+      windows.push({ startHour: h, endHour: h + len, hours: len, overnight: h + len >= 24 });
+      h += len;
+      remaining -= len;
+    }
+  }
+  return windows;
+}
+
+// Generate a city's whole-week shifts: consistent windows (from weeklyWindows),
+// capacity = THAT day's peak ridersNeeded in the window. Windows with no demand on
+// a given day are skipped (no empty shifts). days: [{date, day, slots:48-array}].
+export function weekShifts(days) {
+  const windows = weeklyWindows(days.map((d) => d.slots));
+  const out = [];
+  for (const d of days) {
+    for (const w of windows) {
+      const capacity = peakOverHours(d.slots, w.startHour, w.endHour);
+      if (capacity <= 0) continue;
+      out.push({
+        date: d.date, day: d.day,
+        start: hhmm(w.startHour), end: hhmm(w.endHour),
+        hours: w.hours, capacity, overnight: w.overnight,
+      });
+    }
+  }
+  return out;
 }
 
 export function reshapeCitySheet(rows, cityRaw) {
