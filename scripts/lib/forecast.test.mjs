@@ -1,7 +1,7 @@
 // scripts/lib/forecast.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ridersNeeded, reshapeCitySheet, findOperatingSpans } from "./forecast.mjs";
+import { ridersNeeded, reshapeCitySheet, findOperatingSpans, tileDay } from "./forecast.mjs";
 
 test("ridersNeeded: ceil(orders / 2 * 1.15)", () => {
   assert.equal(ridersNeeded(0), 0);
@@ -52,4 +52,30 @@ test("findOperatingSpans: rounds odd-length span up to even", () => {
   const spans = findOperatingSpans(r);
   // active [0,5) => startHour 0, endHour ceil(5/2)=3 (odd) -> bumped to 4
   assert.deepEqual(spans, [{ startHour: 0, endHour: 4 }]);
+});
+
+test("tileDay: greedy longest-fit 6/4/2, capacity = peak ridersNeeded in tile", () => {
+  const r = new Array(48).fill(0);
+  // 10:00-22:00 (slots 20..43): midday peak 8, evening 5
+  for (let i = 20; i <= 31; i++) r[i] = 8; // 10:00..15:30
+  for (let i = 32; i <= 43; i++) r[i] = 5; // 16:00..21:30
+  const shifts = tileDay(r);
+  // span = 10..22 (12h) -> 6+6
+  assert.deepEqual(shifts, [
+    { start: "10:00", end: "16:00", hours: 6, capacity: 8, overnight: false },
+    { start: "16:00", end: "22:00", hours: 6, capacity: 5, overnight: false },
+  ]);
+});
+
+test("tileDay: 8h span tiles as 6+2", () => {
+  const r = new Array(48).fill(0);
+  for (let i = 18; i <= 33; i++) r[i] = 4; // 09:00..16:30 -> hours 9..17 (8h)
+  const shifts = tileDay(r);
+  assert.deepEqual(shifts.map((s) => s.hours), [6, 2]);
+  assert.equal(shifts[0].start, "09:00");
+  assert.equal(shifts[1].end, "17:00");
+});
+
+test("tileDay: empty demand -> no shifts", () => {
+  assert.deepEqual(tileDay(new Array(48).fill(0)), []);
 });

@@ -59,6 +59,42 @@ export function findOperatingSpans(ridersBySlot) {
   return spans;
 }
 
+function hhmm(hour) {
+  const h = ((hour % 24) + 24) % 24;
+  return `${String(h).padStart(2, "0")}:00`;
+}
+
+// peak ridersNeeded across the slots covering [startHour, endHour)
+function peakOverHours(ridersBySlot, startHour, endHour) {
+  let peak = 0;
+  for (let slot = startHour * 2; slot < endHour * 2 && slot < ridersBySlot.length; slot++) {
+    peak = Math.max(peak, ridersBySlot[slot] || 0);
+  }
+  return peak;
+}
+
+export function tileDay(ridersBySlot) {
+  const shifts = [];
+  for (const { startHour, endHour } of findOperatingSpans(ridersBySlot)) {
+    let h = startHour;
+    let remaining = endHour - startHour;
+    while (remaining > 0) {
+      const len = SHIFT_LENGTHS.find((L) => L <= remaining) ?? 2; // even spans guarantee a fit
+      const segEnd = h + len;
+      shifts.push({
+        start: hhmm(h),
+        end: hhmm(segEnd),
+        hours: len,
+        capacity: peakOverHours(ridersBySlot, h, segEnd),
+        overnight: segEnd >= 24,
+      });
+      h = segEnd;
+      remaining -= len;
+    }
+  }
+  return shifts;
+}
+
 export function reshapeCitySheet(rows, cityRaw) {
   const City = normalizeCity(cityRaw);
   const dateRow = rows[2] || [];
