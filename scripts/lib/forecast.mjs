@@ -40,6 +40,25 @@ export function timeToSlot(time) {
   return h * 2 + (m >= 30 ? 1 : 0);
 }
 
+export function findOperatingSpans(ridersBySlot) {
+  const spans = [];
+  let i = 0;
+  const n = ridersBySlot.length;
+  while (i < n) {
+    if ((ridersBySlot[i] || 0) <= 0) { i++; continue; }
+    let j = i;
+    while (j < n && (ridersBySlot[j] || 0) > 0) j++;
+    // slots [i, j) are active. Convert to whole hours.
+    let startHour = Math.floor(i / 2);
+    let endHour = Math.ceil(j / 2);
+    if ((endHour - startHour) % 2 === 1) endHour += 1; // keep spans even so 2/4/6 tile exactly
+    if (endHour > 24) endHour = 24;
+    spans.push({ startHour, endHour });
+    i = j;
+  }
+  return spans;
+}
+
 export function reshapeCitySheet(rows, cityRaw) {
   const City = normalizeCity(cityRaw);
   const dateRow = rows[2] || [];

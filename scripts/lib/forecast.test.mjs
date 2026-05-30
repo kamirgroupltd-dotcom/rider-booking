@@ -1,7 +1,7 @@
 // scripts/lib/forecast.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ridersNeeded, reshapeCitySheet } from "./forecast.mjs";
+import { ridersNeeded, reshapeCitySheet, findOperatingSpans } from "./forecast.mjs";
 
 test("ridersNeeded: ceil(orders / 2 * 1.15)", () => {
   assert.equal(ridersNeeded(0), 0);
@@ -32,4 +32,24 @@ test("reshapeCitySheet: emits one record per (date,time) with orders+ridersNeede
   const sunMidnight = recs.find((r) => r.Date === "2026-06-07" && r.Time === "00:00");
   assert.equal(sunMidnight.Orders, 20);
   assert.equal(sunMidnight.RidersNeeded, 12); // 20/2*1.15=11.5 -> 12
+});
+
+test("findOperatingSpans: returns whole-hour, even-length [startHour,endHour) spans where demand>0", () => {
+  // 48 slots; put demand in slots 20-23 (10:00-12:00) and 34-39 (17:00-20:00)
+  const r = new Array(48).fill(0);
+  for (let i = 20; i <= 23; i++) r[i] = 5; // 10:00..11:30 -> 10..12 (2h, even)
+  for (let i = 34; i <= 39; i++) r[i] = 8; // 17:00..19:30 -> 17..20 (3h, odd) -> bumped to 21 (4h)
+  const spans = findOperatingSpans(r);
+  assert.deepEqual(spans, [
+    { startHour: 10, endHour: 12 },
+    { startHour: 17, endHour: 21 },
+  ]);
+});
+
+test("findOperatingSpans: rounds odd-length span up to even", () => {
+  const r = new Array(48).fill(0);
+  for (let i = 0; i <= 4; i++) r[i] = 3; // slots 0..4 => 00:00..02:30 demand
+  const spans = findOperatingSpans(r);
+  // active [0,5) => startHour 0, endHour ceil(5/2)=3 (odd) -> bumped to 4
+  assert.deepEqual(spans, [{ startHour: 0, endHour: 4 }]);
 });
